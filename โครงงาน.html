@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="th" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบรายงานเหตุการณ์ภายในวิทยาลัย</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+      font-family: 'Sarabun', sans-serif;
+    }
+    
+    .gradient-bg {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%);
+    }
+    
+    .card-shadow {
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .input-focus:focus {
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    }
+    
+    .btn-primary:disabled {
+      background: #94a3b8;
+      transform: none;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    
+    .status-pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .status-processing {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .status-resolved {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .table-row:hover {
+      background: #f8fafc;
+    }
+    
+    .nav-tab {
+      transition: all 0.3s ease;
+    }
+    
+    .nav-tab.active {
+      background: white;
+      color: #1e3a5f;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .nav-tab:not(.active):hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .toast {
+      animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateY(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+    
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    .modal-backdrop {
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+    
+    .loading-overlay {
+      background: rgba(255, 255, 255, 0.9);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full gradient-bg overflow-auto"><!-- Toast Notification -->
+   <div id="toast-container" class="fixed top-4 right-4 z-50"></div><!-- Header -->
+   <header class="py-6 px-4">
+    <div class="max-w-5xl mx-auto text-center">
+     <div class="flex items-center justify-center gap-3 mb-2">
+      <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+      <h1 id="system-title" class="text-3xl md:text-4xl font-bold text-white tracking-wide">ระบบรายงานเหตุการณ์ภายในวิทยาลัย</h1>
+     </div>
+     <p id="college-name" class="text-blue-200 text-lg">วิทยาลัยพาณิชยการบางนา</p>
+    </div>
+   </header><!-- Navigation Tabs -->
+   <nav class="max-w-5xl mx-auto px-4 mb-6">
+    <div class="flex gap-2 bg-white/10 p-2 rounded-xl"><button onclick="showPage('report')" id="tab-report" class="nav-tab active flex-1 py-3 px-6 rounded-lg font-semibold text-white flex items-center justify-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg> แจ้งเหตุการณ์ </button> <button onclick="showPage('history')" id="tab-history" class="nav-tab flex-1 py-3 px-6 rounded-lg font-semibold text-white flex items-center justify-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg> ประวัติการแจ้ง </button>
+    </div>
+   </nav><!-- Report Page -->
+   <main id="page-report" class="max-w-3xl mx-auto px-4 pb-8">
+    <div class="bg-white rounded-2xl card-shadow p-8">
+     <div class="flex items-center gap-3 mb-6 pb-4 border-b-2 border-blue-100">
+      <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+       <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+       </svg>
+      </div>
+      <div>
+       <h2 class="text-2xl font-bold text-gray-800">แบบฟอร์มแจ้งเหตุการณ์</h2>
+       <p class="text-gray-500">กรุณากรอกข้อมูลให้ครบถ้วน</p>
+      </div>
+     </div>
+     <form id="report-form" class="space-y-6">
+      <div><label for="student-id" class="block text-sm font-semibold text-gray-700 mb-2"> <span class="text-red-500">*</span> เลขประจำตัว </label> <input type="text" id="student-id" name="studentId" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl input-focus focus:border-blue-500 focus:outline-none transition-all" placeholder="กรอกเลขประจำตัวนักศึกษา">
+      </div>
+      <div><label for="incident-type" class="block text-sm font-semibold text-gray-700 mb-2"> <span class="text-red-500">*</span> เหตุการณ์เกี่ยวกับ </label> <select id="incident-type" name="incidentType" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl input-focus focus:border-blue-500 focus:outline-none transition-all bg-white"> <option value="">-- เลือกประเภทเหตุการณ์ --</option> <option value="อุบัติเหตุ">อุบัติเหตุ</option> <option value="ทรัพย์สินเสียหาย">ทรัพย์สินเสียหาย</option> <option value="ทรัพย์สินสูญหาย">ทรัพย์สินสูญหาย</option> <option value="เหตุทะเลาะวิวาท">เหตุทะเลาะวิวาท</option> <option value="ปัญหาสิ่งแวดล้อม">ปัญหาสิ่งแวดล้อม</option> <option value="ปัญหาด้านสุขภาพ">ปัญหาด้านสุขภาพ</option> <option value="ปัญหาระบบไฟฟ้า">ปัญหาระบบไฟฟ้า</option> <option value="ปัญหาระบบประปา">ปัญหาระบบประปา</option> <option value="อื่นๆ">อื่นๆ</option> </select>
+      </div>
+      <div><label for="notes" class="block text-sm font-semibold text-gray-700 mb-2"> <span class="text-red-500">*</span> รายละเอียด / หมายเหตุ </label> <textarea id="notes" name="notes" rows="4" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl input-focus focus:border-blue-500 focus:outline-none transition-all resize-none" placeholder="อธิบายรายละเอียดของเหตุการณ์..."></textarea>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+       <div><label for="incident-date" class="block text-sm font-semibold text-gray-700 mb-2"> <span class="text-red-500">*</span> วันที่เกิดเหตุ </label> <input type="date" id="incident-date" name="incidentDate" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl input-focus focus:border-blue-500 focus:outline-none transition-all">
+       </div>
+       <div><label for="incident-time" class="block text-sm font-semibold text-gray-700 mb-2"> <span class="text-red-500">*</span> เวลาที่เกิดเหตุ </label> <input type="time" id="incident-time" name="incidentTime" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl input-focus focus:border-blue-500 focus:outline-none transition-all">
+       </div>
+      </div>
+      <div class="pt-4"><button type="submit" id="submit-btn" class="w-full btn-primary text-white font-semibold py-4 px-6 rounded-xl flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+        </svg><span id="submit-text">ส่งรายงาน</span>
+        <svg id="submit-spinner" class="w-5 h-5 spinner hidden" fill="none" stroke="currentColor" viewbox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle> <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg></button>
+      </div>
+     </form>
+    </div>
+   </main><!-- History Page -->
+   <main id="page-history" class="max-w-6xl mx-auto px-4 pb-8 hidden">
+    <div class="bg-white rounded-2xl card-shadow p-6">
+     <div class="flex items-center justify-between mb-6 pb-4 border-b-2 border-blue-100">
+      <div class="flex items-center gap-3">
+       <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+       </div>
+       <div>
+        <h2 class="text-2xl font-bold text-gray-800">ประวัติการแจ้งเหตุการณ์</h2>
+        <p class="text-gray-500">รายการทั้งหมดที่แจ้งไว้</p>
+       </div>
+      </div><button onclick="loadHistory()" id="refresh-btn" class="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all font-medium">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+       </svg> รีเฟรช </button>
+     </div><!-- Loading State -->
+     <div id="history-loading" class="hidden py-12 text-center">
+      <svg class="w-12 h-12 mx-auto text-blue-500 spinner" fill="none" stroke="currentColor" viewbox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle> <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      </svg>
+      <p class="mt-4 text-gray-500">กำลังโหลดข้อมูล...</p>
+     </div><!-- Empty State -->
+     <div id="history-empty" class="hidden py-12 text-center">
+      <svg class="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+      <p class="mt-4 text-gray-500 text-lg">ยังไม่มีรายการแจ้งเหตุการณ์</p>
+     </div><!-- Table -->
+     <div id="history-table-container" class="hidden overflow-x-auto">
+      <table class="w-full">
+       <thead>
+        <tr class="bg-gray-50">
+         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 rounded-l-lg">ลำดับ</th>
+         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">เลขประจำตัว</th>
+         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">เหตุการณ์</th>
+         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">รายละเอียด</th>
+         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">วันที่/เวลา</th>
+         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">สถานะ</th>
+         <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600 rounded-r-lg">จัดการ</th>
+        </tr>
+       </thead>
+       <tbody id="history-tbody">
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </main><!-- Delete Confirmation Modal -->
+   <div id="delete-modal" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeDeleteModal()"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-6 w-full max-w-md card-shadow">
+     <div class="text-center">
+      <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+       <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+       </svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-800 mb-2">ยืนยันการลบ</h3>
+      <p class="text-gray-500 mb-6">คุณต้องการลบรายการนี้หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+      <div class="flex gap-3"><button onclick="closeDeleteModal()" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"> ยกเลิก </button> <button onclick="confirmDelete()" id="confirm-delete-btn" class="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-all"> ลบ </button>
+      </div>
+     </div>
+    </div>
+   </div><!-- Status Update Modal -->
+   <div id="status-modal" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeStatusModal()"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-6 w-full max-w-md card-shadow">
+     <div class="text-center">
+      <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+       <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+       </svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-800 mb-4">เปลี่ยนสถานะ</h3><select id="status-select" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl mb-6 focus:border-blue-500 focus:outline-none"> <option value="รอดำเนินการ">รอดำเนินการ</option> <option value="กำลังดำเนินการ">กำลังดำเนินการ</option> <option value="เสร็จสิ้น">เสร็จสิ้น</option> </select>
+      <div class="flex gap-3"><button onclick="closeStatusModal()" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"> ยกเลิก </button> <button onclick="confirmStatusUpdate()" id="confirm-status-btn" class="flex-1 px-4 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-all"> บันทึก </button>
+      </div>
+     </div>
+    </div>
+   </div><!-- Footer -->
+   <footer class="py-6 text-center text-blue-200 text-sm">
+    <p>© 2026 ระบบรายงานเหตุการณ์ภายในวิทยาลัย | พัฒนาโดย ฝ่ายเทคโนโลยีธุรกิจดิจิทัล</p>
+   </footer>
+  </div>
+  <script>
+    // Configuration
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz6jBmb_83dqx-kgKX2ti3WR63HSli7F9-Fi0sqwPmp6R3xHInB_rQuhw9hsvzgZdNdzA/exec';
+    
+    // State
+    let historyData = [];
+    let deleteRowIndex = null;
+    let statusRowIndex = null;
+    
+    // Default config for Element SDK
+    const defaultConfig = {
+      system_title: 'ระบบรายงานเหตุการณ์ภายในวิทยาลัย',
+      college_name: 'วิทยาลัยพาณิชยการบางนา'
+    };
+    
+    let config = { ...defaultConfig };
+    
+    // Initialize Element SDK
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (newConfig) => {
+          config = { ...defaultConfig, ...newConfig };
+          document.getElementById('system-title').textContent = config.system_title || defaultConfig.system_title;
+          document.getElementById('college-name').textContent = config.college_name || defaultConfig.college_name;
+        },
+        mapToCapabilities: (config) => ({
+          recolorables: [],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['system_title', config.system_title || defaultConfig.system_title],
+          ['college_name', config.college_name || defaultConfig.college_name]
+        ])
+      });
+    }
+    
+    // Set default date to today
+    document.getElementById('incident-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('incident-time').value = new Date().toTimeString().slice(0, 5);
+    
+    // Toast notification
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+      const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+      
+      toast.className = `toast ${bgColor} text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 mb-2`;
+      toast.innerHTML = `
+        <span class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-sm font-bold">${icon}</span>
+        <span class="font-medium">${message}</span>
+      `;
+      
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+    
+    // Page navigation
+    function showPage(page) {
+      const reportPage = document.getElementById('page-report');
+      const historyPage = document.getElementById('page-history');
+      const tabReport = document.getElementById('tab-report');
+      const tabHistory = document.getElementById('tab-history');
+      
+      if (page === 'report') {
+        reportPage.classList.remove('hidden');
+        historyPage.classList.add('hidden');
+        tabReport.classList.add('active');
+        tabHistory.classList.remove('active');
+      } else {
+        reportPage.classList.add('hidden');
+        historyPage.classList.remove('hidden');
+        tabReport.classList.remove('active');
+        tabHistory.classList.add('active');
+        loadHistory();
+      }
+    }
+    
+    // Form submission
+    document.getElementById('report-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submit-btn');
+      const submitText = document.getElementById('submit-text');
+      const submitSpinner = document.getElementById('submit-spinner');
+      
+      // Disable button and show loading
+      submitBtn.disabled = true;
+      submitText.textContent = 'กำลังส่ง...';
+      submitSpinner.classList.remove('hidden');
+      
+      const formData = {
+        action: 'create',
+        studentId: document.getElementById('student-id').value,
+        incidentType: document.getElementById('incident-type').value,
+        notes: document.getElementById('notes').value,
+        incidentDate: document.getElementById('incident-date').value,
+        incidentTime: document.getElementById('incident-time').value
+      };
+      
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        // Since we're using no-cors, we can't read the response
+        // Assume success if no error thrown
+        showToast('ส่งรายงานเรียบร้อยแล้ว! ระบบจะส่งอีเมลแจ้งเตือน', 'success');
+        document.getElementById('report-form').reset();
+        document.getElementById('incident-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('incident-time').value = new Date().toTimeString().slice(0, 5);
+        
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง', 'error');
+      } finally {
+        // Re-enable button
+        submitBtn.disabled = false;
+        submitText.textContent = 'ส่งรายงาน';
+        submitSpinner.classList.add('hidden');
+      }
+    });
+    
+    // Load history
+    async function loadHistory() {
+      const loading = document.getElementById('history-loading');
+      const empty = document.getElementById('history-empty');
+      const tableContainer = document.getElementById('history-table-container');
+      
+      loading.classList.remove('hidden');
+      empty.classList.add('hidden');
+      tableContainer.classList.add('hidden');
+      
+      try {
+        const response = await fetch(`${API_URL}?action=read`);
+        const result = await response.json();
+        
+        if (result.success && result.data && result.data.length > 0) {
+          historyData = result.data;
+          renderHistoryTable();
+          tableContainer.classList.remove('hidden');
+        } else {
+          empty.classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('ไม่สามารถโหลดข้อมูลได้', 'error');
+        empty.classList.remove('hidden');
+      } finally {
+        loading.classList.add('hidden');
+      }
+    }
+    
+    // Render history table
+    function renderHistoryTable() {
+      const tbody = document.getElementById('history-tbody');
+      tbody.innerHTML = '';
+      
+      historyData.forEach((item, index) => {
+        const statusClass = item.status === 'รอดำเนินการ' ? 'status-pending' : 
+                           item.status === 'กำลังดำเนินการ' ? 'status-processing' : 'status-resolved';
+        
+        const row = document.createElement('tr');
+        row.className = 'table-row border-b border-gray-100';
+        row.innerHTML = `
+          <td class="px-4 py-4 text-sm text-gray-600">${index + 1}</td>
+          <td class="px-4 py-4 text-sm font-medium text-gray-800">${item.studentId || '-'}</td>
+          <td class="px-4 py-4 text-sm text-gray-600">${item.incidentType || '-'}</td>
+          <td class="px-4 py-4 text-sm text-gray-600 max-w-xs truncate" title="${item.notes || ''}">${item.notes || '-'}</td>
+          <td class="px-4 py-4 text-sm text-gray-600">${item.incidentDate || '-'} ${item.incidentTime || ''}</td>
+          <td class="px-4 py-4">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusClass}">${item.status || 'รอดำเนินการ'}</span>
+          </td>
+          <td class="px-4 py-4">
+            <div class="flex items-center justify-center gap-2">
+              <button onclick="openStatusModal(${item.rowIndex})" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="แก้ไขสถานะ">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+              </button>
+              <button onclick="openDeleteModal(${item.rowIndex})" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all" title="ลบ">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+    
+    // Delete modal functions
+    function openDeleteModal(rowIndex) {
+      deleteRowIndex = rowIndex;
+      document.getElementById('delete-modal').classList.remove('hidden');
+    }
+    
+    function closeDeleteModal() {
+      deleteRowIndex = null;
+      document.getElementById('delete-modal').classList.add('hidden');
+    }
+    
+    async function confirmDelete() {
+      if (deleteRowIndex === null) return;
+      
+      const btn = document.getElementById('confirm-delete-btn');
+      btn.textContent = 'กำลังลบ...';
+      btn.disabled = true;
+      
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'delete',
+            rowIndex: deleteRowIndex
+          })
+        });
+        
+        showToast('ลบรายการเรียบร้อยแล้ว', 'success');
+        closeDeleteModal();
+        setTimeout(() => loadHistory(), 500);
+        
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('เกิดข้อผิดพลาดในการลบ', 'error');
+      } finally {
+        btn.textContent = 'ลบ';
+        btn.disabled = false;
+      }
+    }
+    
+    // Status modal functions
+    function openStatusModal(rowIndex) {
+      statusRowIndex = rowIndex;
+      const item = historyData.find(d => d.rowIndex === rowIndex);
+      if (item) {
+        document.getElementById('status-select').value = item.status || 'รอดำเนินการ';
+      }
+      document.getElementById('status-modal').classList.remove('hidden');
+    }
+    
+    function closeStatusModal() {
+      statusRowIndex = null;
+      document.getElementById('status-modal').classList.add('hidden');
+    }
+    
+    async function confirmStatusUpdate() {
+      if (statusRowIndex === null) return;
+      
+      const btn = document.getElementById('confirm-status-btn');
+      const newStatus = document.getElementById('status-select').value;
+      
+      btn.textContent = 'กำลังบันทึก...';
+      btn.disabled = true;
+      
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'updateStatus',
+            rowIndex: statusRowIndex,
+            status: newStatus
+          })
+        });
+        
+        showToast('อัพเดทสถานะเรียบร้อยแล้ว', 'success');
+        closeStatusModal();
+        setTimeout(() => loadHistory(), 500);
+        
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('เกิดข้อผิดพลาดในการอัพเดท', 'error');
+      } finally {
+        btn.textContent = 'บันทึก';
+        btn.disabled = false;
+      }
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c7aaa7e606e4b8e',t:'MTc3MDA0NTU1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
