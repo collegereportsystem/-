@@ -261,6 +261,8 @@
   <script>
     // Configuration
     const API_URL = 'https://script.google.com/macros/s/AKfycbz6jBmb_83dqx-kgKX2ti3WR63HSli7F9-Fi0sqwPmp6R3xHInB_rQuhw9hsvzgZdNdzA/exec';
+    const ADMIN_PASSWORD = "report_admin";
+
     
     // State
     let historyData = [];
@@ -423,6 +425,25 @@
     }
     
     // Render history table
+    function formatDateTime(dateStr, timeStr) {
+    if (!dateStr) return '-';
+
+    let date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+
+    let time = '';
+    if (timeStr) {
+      let t = new Date(timeStr);
+      const hh = String(t.getHours()).padStart(2, '0');
+      const mi = String(t.getMinutes()).padStart(2, '0');
+      time = `${hh}:${mi} น.`;
+    }
+
+    return `${yyyy}-${mm}-${dd} ${time}`;
+  }
+
     function renderHistoryTable() {
       const tbody = document.getElementById('history-tbody');
       tbody.innerHTML = '';
@@ -437,19 +458,25 @@
           <td class="px-4 py-4 text-sm text-gray-600">${index + 1}</td>
           <td class="px-4 py-4 text-sm font-medium text-gray-800">${item.studentId || '-'}</td>
           <td class="px-4 py-4 text-sm text-gray-600">${item.incidentType || '-'}</td>
-          <td class="px-4 py-4 text-sm text-gray-600 max-w-xs truncate" title="${item.notes || ''}">${item.notes || '-'}</td>
-          <td class="px-4 py-4 text-sm text-gray-600">${item.incidentDate || '-'} ${item.incidentTime || ''}</td>
+          <td class="px-4 py-4 text-sm text-gray-600 max-w-xs"><div class="truncate">${item.notes || '-'}</div>
+            <button onclick="openDetailModal('${(item.notes || '').replace(/'/g, "\\'")}')"
+          class="text-blue-500 text-xs mt-1 hover:underline">
+          ดูรายละเอียด
+           </button>
+          </td>
+
+          <td class="px-4 py-4 text-sm text-gray-600">${formatDateTime(item.incidentDate, item.incidentTime)}</td>
           <td class="px-4 py-4">
             <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusClass}">${item.status || 'รอดำเนินการ'}</span>
           </td>
           <td class="px-4 py-4">
             <div class="flex items-center justify-center gap-2">
-              <button onclick="openStatusModal(${item.rowIndex})" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="แก้ไขสถานะ">
+              <button onclick="checkPasswordAndOpenStatus(${item.rowIndex})" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="แก้ไขสถานะ">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                 </svg>
               </button>
-              <button onclick="openDeleteModal(${item.rowIndex})" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all" title="ลบ">
+              <button onclick="checkPasswordAndOpenDelete(${item.rowIndex})" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all" title="ลบ">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                 </svg>
@@ -504,7 +531,32 @@
         btn.disabled = false;
       }
     }
-    
+      function checkPasswordAndOpenStatus(rowIndex) {
+    const password = prompt("กรุณาใส่รหัสผ่านเพื่อแก้ไขสถานะ");
+
+    if (password === null) return;
+
+    if (password !== ADMIN_PASSWORD) {
+      alert("รหัสผ่านไม่ถูกต้อง ❌");
+      return;
+    }
+
+    openStatusModal(rowIndex);
+  }
+
+    function checkPasswordAndOpenDelete(rowIndex) {
+    const password = prompt("กรุณาใส่รหัสผ่านเพื่อยืนยันการลบ");
+
+    if (password === null) return;
+
+    if (password !== ADMIN_PASSWORD) {
+      alert("รหัสผ่านไม่ถูกต้อง ❌");
+      return;
+    }
+
+    openDeleteModal(rowIndex);
+  }
+
     // Status modal functions
     function openStatusModal(rowIndex) {
       statusRowIndex = rowIndex;
@@ -555,6 +607,31 @@
         btn.disabled = false;
       }
     }
+      function openDetailModal(text) {
+    document.getElementById('detail-text').textContent = text || '-';
+    document.getElementById('detail-modal').classList.remove('hidden');
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detail-modal').classList.add('hidden');
+  }
   </script>
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeDetailModal()"></div>
+
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
+              bg-white rounded-2xl p-6 w-full max-w-lg card-shadow">
+
+      <h3 class="text-xl font-bold text-gray-800 mb-4">รายละเอียดเหตุการณ์</h3>
+      <p id="detail-text" class="text-gray-600 whitespace-pre-line"></p>
+
+      <button onclick="closeDetailModal()"
+            class="mt-6 w-full bg-blue-500 text-white py-3 rounded-xl hover:bg-blue-600">
+        ปิด
+      </button>
+    </div>
+  </div>
+
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c7aaa7e606e4b8e',t:'MTc3MDA0NTU1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
